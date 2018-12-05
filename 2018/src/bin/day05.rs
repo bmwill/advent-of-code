@@ -47,7 +47,7 @@ fn reacted_polymer_len(unreacted_polymer: &[u8]) -> usize {
 }
 
 fn part2(input: &[u8]) -> Result<()> {
-    let min_len = (b'a'..b'z')
+    let min_len = (b'a'..=b'z')
         .into_iter()
         .map(|c| {
             let polymer: Vec<u8> = input
