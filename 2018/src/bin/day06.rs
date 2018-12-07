@@ -24,17 +24,9 @@ fn part2(points: &[Point]) -> Result<()> {
     let max_x = points.iter().map(|p| p.x).max().ok_or("input is empty")?;
     let max_y = points.iter().map(|p| p.y).max().ok_or("input is empty")?;
 
-    let mut grid = Vec::new();
-    for x in 0..=max_x {
-        for y in 0..=max_y {
-            let point = Point { x, y };
-            grid.push(point);
-        }
-    }
-
-    let area = grid
-        .iter()
-        .map(|p| points.iter().map(|point| point.distance(*p)).sum::<i32>())
+    let area = (0..=max_x)
+        .flat_map(|x| (0..=max_y).map(move |y| Point { x, y }))
+        .map(|p| points.iter().map(|point| point.distance(p)).sum::<i32>())
         .filter(|sum| *sum < 10000)
         .count();
 
