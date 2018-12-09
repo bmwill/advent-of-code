@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::io::{self, Read};
 
 type Result<T> = ::std::result::Result<T, Box<::std::error::Error>>;
@@ -34,9 +35,8 @@ fn part2(num_players: u32, num_marbles: u32) {
 }
 
 struct Game {
-    circle: Vec<u32>,
-    current_marble: usize,
-    scores: Vec<u32>,
+    circle: VecDeque<u32>,
+    scores: Vec<u64>,
     current_player: usize,
 
     num_marbles: u32,
@@ -44,9 +44,10 @@ struct Game {
 
 impl Game {
     fn new(num_players: u32, num_marbles: u32) -> Self {
+        let mut circle = VecDeque::new();
+        circle.push_back(0);
         Self {
-            circle: vec![0],
-            current_marble: 0,
+            circle,
             scores: vec![0; num_players as usize],
             current_player: 0,
             num_marbles,
@@ -55,44 +56,23 @@ impl Game {
 
     fn play(&mut self) {
         for marble in 1..=self.num_marbles {
-            if (marble % 100000) == 0 {
-                println!("iteration {}", marble);
-            }
-
             if (marble % 23) == 0 {
                 // Scoring turn
-                // TODO take score
-                let next = Self::next_take_location(self.current_marble, self.circle.len());
-                self.scores[self.current_player] += self.circle.remove(next) + marble;
-
-                self.current_marble = if next == self.circle.len() { 0 } else { next }
+                for _ in 0..7 {
+                    let m = self.circle.pop_back().unwrap();
+                    self.circle.push_front(m);
+                }
+                self.scores[self.current_player] +=
+                    self.circle.pop_front().unwrap() as u64 + marble as u64;
             } else {
-                // Normal turn
-                let next = Self::next_place_location(self.current_marble, self.circle.len());
-                self.circle.insert(next, marble);
-                self.current_marble = next;
+                for _ in 0..2 {
+                    let m = self.circle.pop_front().unwrap();
+                    self.circle.push_back(m);
+                }
+                self.circle.push_front(marble);
             }
 
-            //println!("{}", self);
             self.current_player = Self::next_player(self.current_player, self.scores.len());
-        }
-    }
-
-    fn next_place_location(current_marble: usize, circle_len: usize) -> usize {
-        let next = current_marble + 2;
-        if next > circle_len {
-            next - circle_len
-        } else {
-            next
-        }
-    }
-
-    fn next_take_location(current_marble: usize, circle_len: usize) -> usize {
-        let next = current_marble as i32 - 7;
-        if next < 0 {
-            (next + circle_len as i32) as usize
-        } else {
-            next as usize
         }
     }
 
@@ -105,22 +85,7 @@ impl Game {
         }
     }
 
-    fn top_score(&self) -> u32 {
-        *self.scores.iter().max().unwrap()
-    }
-}
-
-impl ::std::fmt::Display for Game {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
-        let mut output = String::new();
-
-        for (index, marble) in self.circle.iter().enumerate() {
-            if index == self.current_marble {
-                output.push_str(&format!(" ({})", marble));
-            } else {
-                output.push_str(&format!(" {}", marble));
-            }
-        }
-        write!(f, "{}", output)
+    fn top_score(&self) -> u64 {
+        *self.scores.iter().fold(&0, ::std::cmp::max)
     }
 }
