@@ -11,6 +11,14 @@ fn part1(mut program: Vec<i32>) -> Result<()> {
     Ok(())
 }
 
+fn part2(mut program: Vec<i32>) -> Result<()> {
+    let mut computer = IntcodeComputer::new(&mut program);
+    computer.input(5);
+    computer.run()?;
+    println!("Part 1: {:?}", computer.output());
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let program = INPUT
         .trim()
@@ -19,6 +27,7 @@ fn main() -> Result<()> {
         .collect::<Result<Vec<_>, _>>()?;
 
     part1(program.clone())?;
+    part2(program)?;
 
     Ok(())
 }

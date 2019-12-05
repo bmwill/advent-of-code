@@ -72,6 +72,10 @@ impl IntcodeComputer<'_> {
             2 => Opcode::Mul,
             3 => Opcode::Input,
             4 => Opcode::Output,
+            5 => Opcode::JumpIfTrue,
+            6 => Opcode::JumpIfFalse,
+            7 => Opcode::LessThan,
+            8 => Opcode::Equals,
             99 => Opcode::Halt,
             _ => return Err(IntcodeError::InvalidInstruction(i)),
         };
@@ -113,6 +117,22 @@ impl IntcodeComputer<'_> {
             (Opcode::Output, p1, Position, Position) => {
                 Instruction::Output(self.fetch_operand(p1)?)
             }
+            (Opcode::JumpIfTrue, p1, p2, Position) => {
+                Instruction::JumpIfTrue(self.fetch_operand(p1)?, self.fetch_operand(p2)?)
+            }
+            (Opcode::JumpIfFalse, p1, p2, Position) => {
+                Instruction::JumpIfFalse(self.fetch_operand(p1)?, self.fetch_operand(p2)?)
+            }
+            (Opcode::LessThan, p1, p2, Position) => Instruction::LessThan(
+                self.fetch_operand(p1)?,
+                self.fetch_operand(p2)?,
+                self.fetch()? as usize,
+            ),
+            (Opcode::Equals, p1, p2, Position) => Instruction::Equals(
+                self.fetch_operand(p1)?,
+                self.fetch_operand(p2)?,
+                self.fetch()? as usize,
+            ),
             (Opcode::Halt, Position, Position, Position) => Instruction::Halt,
             (_, _, _, _) => return Err(IntcodeError::InvalidInstruction(inst)),
         };
@@ -132,6 +152,24 @@ impl IntcodeComputer<'_> {
             }
             Input(addr) => self.memwrite(addr, self.input[0])?,
             Output(rs) => self.output.push(self.read_operand(rs)?),
+            JumpIfTrue(rs, rt) => {
+                if self.read_operand(rs)? != 0 {
+                    self.ip = self.read_operand(rt)? as usize;
+                }
+            }
+            JumpIfFalse(rs, rt) => {
+                if self.read_operand(rs)? == 0 {
+                    self.ip = self.read_operand(rt)? as usize;
+                }
+            }
+            LessThan(rs, rt, addr) => self.memwrite(
+                addr,
+                (self.read_operand(rs)? < self.read_operand(rt)?).into(),
+            )?,
+            Equals(rs, rt, addr) => self.memwrite(
+                addr,
+                (self.read_operand(rs)? == self.read_operand(rt)?).into(),
+            )?,
             Halt => self.status = false,
         };
 
@@ -161,6 +199,10 @@ enum Opcode {
     Mul,
     Input,
     Output,
+    JumpIfTrue,
+    JumpIfFalse,
+    LessThan,
+    Equals,
     Halt,
 }
 
@@ -169,6 +211,10 @@ enum Instruction {
     Mul(Operand, Operand, usize),
     Input(usize),
     Output(Operand),
+    JumpIfTrue(Operand, Operand),
+    JumpIfFalse(Operand, Operand),
+    LessThan(Operand, Operand, usize),
+    Equals(Operand, Operand, usize),
     Halt,
 }
 
