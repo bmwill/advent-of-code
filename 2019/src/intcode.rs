@@ -5,6 +5,8 @@ pub type Result<T, E = IntcodeError> = ::std::result::Result<T, E>;
 
 pub struct IntcodeComputer<'a> {
     tape: &'a mut [i32],
+    input: Vec<i32>,
+    output: Vec<i32>,
     ip: usize,
     status: bool,
 }
@@ -13,6 +15,8 @@ impl<'a> IntcodeComputer<'a> {
     pub fn new(tape: &'a mut [i32]) -> Self {
         Self {
             tape,
+            input: Vec::new(),
+            output: Vec::new(),
             ip: 0,
             status: true,
         }
@@ -66,6 +70,8 @@ impl IntcodeComputer<'_> {
         let opcode = match i % 100 {
             1 => Opcode::Add,
             2 => Opcode::Mul,
+            3 => Opcode::Input,
+            4 => Opcode::Output,
             99 => Opcode::Halt,
             _ => return Err(IntcodeError::InvalidInstruction(i)),
         };
@@ -101,6 +107,12 @@ impl IntcodeComputer<'_> {
                 self.fetch_operand(p2)?,
                 self.fetch()? as usize,
             ),
+            (Opcode::Input, Position, Position, Position) => {
+                Instruction::Input(self.fetch()? as usize)
+            }
+            (Opcode::Output, p1, Position, Position) => {
+                Instruction::Output(self.fetch_operand(p1)?)
+            }
             (Opcode::Halt, Position, Position, Position) => Instruction::Halt,
             (_, _, _, _) => return Err(IntcodeError::InvalidInstruction(inst)),
         };
@@ -112,12 +124,14 @@ impl IntcodeComputer<'_> {
         use Instruction::*;
 
         match instruction {
-            Add(rs, rt, rd) => {
-                self.memwrite(rd, self.read_operand(rs)? + self.read_operand(rt)?)?
+            Add(rs, rt, addr) => {
+                self.memwrite(addr, self.read_operand(rs)? + self.read_operand(rt)?)?
             }
-            Mul(rs, rt, rd) => {
-                self.memwrite(rd, self.read_operand(rs)? * self.read_operand(rt)?)?
+            Mul(rs, rt, addr) => {
+                self.memwrite(addr, self.read_operand(rs)? * self.read_operand(rt)?)?
             }
+            Input(addr) => self.memwrite(addr, self.input[0])?,
+            Output(rs) => self.output.push(self.read_operand(rs)?),
             Halt => self.status = false,
         };
 
@@ -131,18 +145,30 @@ impl IntcodeComputer<'_> {
         }
         Ok(())
     }
+
+    pub fn input(&mut self, val: i32) {
+        self.input.push(val)
+    }
+
+    pub fn output(&self) -> &[i32] {
+        &self.output
+    }
 }
 
 #[derive(Clone, Copy)]
 enum Opcode {
     Add,
     Mul,
+    Input,
+    Output,
     Halt,
 }
 
 enum Instruction {
     Add(Operand, Operand, usize),
     Mul(Operand, Operand, usize),
+    Input(usize),
+    Output(Operand),
     Halt,
 }
 
