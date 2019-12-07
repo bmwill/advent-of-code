@@ -1,32 +1,36 @@
+use std::collections::VecDeque;
 use std::iter;
 use thiserror::Error;
 
 pub type Result<T, E = IntcodeError> = ::std::result::Result<T, E>;
 
-pub struct IntcodeComputer<'a> {
-    tape: &'a mut [i32],
-    input: Vec<i32>,
+#[derive(Clone)]
+pub struct IntcodeComputer {
+    tape: Vec<i32>,
+    input: VecDeque<i32>,
     output: Vec<i32>,
     ip: usize,
+    offset: usize,
     status: bool,
 }
 
-impl<'a> IntcodeComputer<'a> {
-    pub fn new(tape: &'a mut [i32]) -> Self {
+impl IntcodeComputer {
+    pub fn new(tape: &[i32]) -> Self {
         Self {
-            tape,
-            input: Vec::new(),
+            tape: tape.to_owned(),
+            input: VecDeque::new(),
             output: Vec::new(),
             ip: 0,
+            offset: 0,
             status: true,
         }
     }
 }
 
-impl IntcodeComputer<'_> {
+impl IntcodeComputer {
     fn fetch(&mut self) -> Result<i32> {
-        let next = self.memread(self.ip)?;
-        self.ip += 1;
+        let next = self.memread(self.ip + self.offset)?;
+        self.offset += 1;
         Ok(next)
     }
 
@@ -150,16 +154,24 @@ impl IntcodeComputer<'_> {
             Mul(rs, rt, addr) => {
                 self.memwrite(addr, self.read_operand(rs)? * self.read_operand(rt)?)?
             }
-            Input(addr) => self.memwrite(addr, self.input[0])?,
+            Input(addr) => {
+                let input = self
+                    .input
+                    .pop_front()
+                    .ok_or(IntcodeError::WaitingForInput)?;
+                self.memwrite(addr, input)?;
+            }
             Output(rs) => self.output.push(self.read_operand(rs)?),
             JumpIfTrue(rs, rt) => {
                 if self.read_operand(rs)? != 0 {
                     self.ip = self.read_operand(rt)? as usize;
+                    self.offset = 0;
                 }
             }
             JumpIfFalse(rs, rt) => {
                 if self.read_operand(rs)? == 0 {
                     self.ip = self.read_operand(rt)? as usize;
+                    self.offset = 0;
                 }
             }
             LessThan(rs, rt, addr) => self.memwrite(
@@ -176,20 +188,41 @@ impl IntcodeComputer<'_> {
         Ok(())
     }
 
+    fn commit(&mut self) {
+        self.ip += self.offset;
+        self.offset = 0;
+    }
+
     pub fn run(&mut self) -> Result<()> {
+        self.offset = 0;
+
         while self.status {
             let instruction = self.fetch_and_decode()?;
             self.execute(instruction)?;
+            self.commit();
         }
         Ok(())
     }
 
     pub fn input(&mut self, val: i32) {
-        self.input.push(val)
+        self.input.push_back(val)
     }
 
     pub fn output(&self) -> &[i32] {
         &self.output
+    }
+
+    pub fn reset(&mut self, program: &[i32]) {
+        self.tape.clear();
+        self.tape.extend_from_slice(program);
+        self.ip = 0;
+        self.input.clear();
+        self.output.clear();
+        self.status = true;
+    }
+
+    pub fn status(&self) -> bool {
+        self.status
     }
 }
 
@@ -235,4 +268,6 @@ pub enum IntcodeError {
     AddressOutOfBound(usize),
     #[error("invalid instruction '{0}'")]
     InvalidInstruction(i32),
+    #[error("waiting for input")]
+    WaitingForInput,
 }
