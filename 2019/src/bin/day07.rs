@@ -4,7 +4,7 @@ use itertools::Itertools;
 
 const INPUT: &str = include_str!("../../input/day07.txt");
 
-fn part1(program: &[i32]) -> Result<()> {
+fn part1(program: &[i64]) -> Result<()> {
     let mut computer = IntcodeComputer::new(&program);
 
     let max = [0, 1, 2, 3, 4]
@@ -27,7 +27,7 @@ fn part1(program: &[i32]) -> Result<()> {
     Ok(())
 }
 
-fn part2(program: &[i32]) -> Result<()> {
+fn part2(program: &[i64]) -> Result<()> {
     let mut computer = vec![IntcodeComputer::new(&program); 5];
 
     let max = (5..=9)
@@ -66,7 +66,7 @@ fn main() -> Result<()> {
     let program = INPUT
         .trim()
         .split(',')
-        .map(str::parse::<i32>)
+        .map(str::parse::<i64>)
         .collect::<Result<Vec<_>, _>>()?;
 
     part1(&program)?;

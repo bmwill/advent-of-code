@@ -3,7 +3,7 @@ use anyhow::Result;
 
 const INPUT: &str = include_str!("../../input/day05.txt");
 
-fn part1(program: Vec<i32>) -> Result<()> {
+fn part1(program: Vec<i64>) -> Result<()> {
     let mut computer = IntcodeComputer::new(&program);
     computer.input(1);
     computer.run()?;
@@ -11,7 +11,7 @@ fn part1(program: Vec<i32>) -> Result<()> {
     Ok(())
 }
 
-fn part2(mut program: Vec<i32>) -> Result<()> {
+fn part2(program: Vec<i64>) -> Result<()> {
     let mut computer = IntcodeComputer::new(&program);
     computer.input(5);
     computer.run()?;
@@ -23,7 +23,7 @@ fn main() -> Result<()> {
     let program = INPUT
         .trim()
         .split(',')
-        .map(str::parse::<i32>)
+        .map(str::parse::<i64>)
         .collect::<Result<Vec<_>, _>>()?;
 
     part1(program.clone())?;
